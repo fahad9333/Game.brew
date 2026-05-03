@@ -429,7 +429,7 @@ logger = logging.getLogger(__name__)
 async def seed_admin():
     existing = await db.admins.find_one({"email": "gamebrew.in@gmail.com"})
     if not existing:
-        pw_hash = bcrypt.hashpw("gamebrew123".encode(), bcrypt.gensalt()).decode()
+        pw_hash = bcrypt.hashpw("SwaOm@19042026".encode(), bcrypt.gensalt()).decode()
         await db.admins.insert_one({
             "id": str(uuid.uuid4()),
             "email": "gamebrew.in@gmail.com",
@@ -437,7 +437,7 @@ async def seed_admin():
             "name": "GameBrew Admin",
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
-        logger.info("Seeded default admin: gamebrew.in@gmail.com / gamebrew123")
+        logger.info("Seeded default admin: gamebrew.in@gmail.com / SwaOm@19042026")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
