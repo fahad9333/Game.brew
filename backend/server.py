@@ -412,6 +412,9 @@ async def admin_notifications(_=Depends(verify_admin), limit: int = 50):
     items = await db.notifications.find({}, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return {"items": items}
 
+@app.get("/")
+async def render_health_check():
+    return {"status": "ok", "message": "Server is running"}
 
 app.include_router(api_router)
 
