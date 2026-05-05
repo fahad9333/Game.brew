@@ -37,7 +37,7 @@ SERVICES = {
         "price_label": "₹90/hour",
         "resource_count": 10,
         "icon": "monitor",
-        "description": "10 high-performance gaming PCs with RTX GPUs, mechanical keyboards, and 144Hz displays.",
+        "description": "10 high-performance gaming PCs with RTX 5060 GPUs, mechanical keyboards, and 200Hz displays.",
     },
     "ps5": {
         "id": "ps5",
@@ -48,7 +48,7 @@ SERVICES = {
         "price_label": "₹130/hour + ₹50 controller",
         "resource_count": 4,
         "icon": "gamepad-2",
-        "description": "4 private PS5 rooms with 4K TVs, recliners, and full surround sound.",
+        "description": "4 private PS5 rooms with 4K TVs, Comfortable sofa's, and full surround sound.",
     },
     "racing": {
         "id": "racing",
@@ -70,7 +70,7 @@ SERVICES = {
         "price_label": "₹200/hour · ₹120/30min",
         "resource_count": 2,
         "icon": "circle-dot",
-        "description": "2 American pool tables with premium cues and chalk under moody neon lighting.",
+        "description": "2 American pool tables with premium cues and chalk under moody warm-white lighting.",
     },
 }
 
@@ -429,7 +429,7 @@ logger = logging.getLogger(__name__)
 async def seed_admin():
     existing = await db.admins.find_one({"email": "gamebrew.in@gmail.com"})
     if not existing:
-        pw_hash = bcrypt.hashpw("gamebrew123".encode(), bcrypt.gensalt()).decode()
+        pw_hash = bcrypt.hashpw("SwaOm@19042026".encode(), bcrypt.gensalt()).decode()
         await db.admins.insert_one({
             "id": str(uuid.uuid4()),
             "email": "gamebrew.in@gmail.com",
@@ -437,7 +437,7 @@ async def seed_admin():
             "name": "GameBrew Admin",
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
-        logger.info("Seeded default admin: gamebrew.in@gmail.com / gamebrew123")
+        logger.info("Seeded default admin: gamebrew.in@gmail.com / SwaOm@19042026")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

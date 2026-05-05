@@ -7,7 +7,7 @@ import { IMAGES } from "@/lib/data";
 
 export default function AdminLogin() {
     const nav = useNavigate();
-    const [email, setEmail] = useState("admin@gamebrew.in");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
