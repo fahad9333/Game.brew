@@ -17,9 +17,19 @@ from datetime import datetime, timezone, timedelta
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# Replace those 3 lines with this:
+mongo_url = os.getenv('MONGO_URL')
+db_name = os.getenv('DB_NAME')
+
+if not mongo_url or not db_name:
+    print("WARNING: MONGO_URL or DB_NAME is missing. App may not function correctly.")
+
+# We use an empty string fallback so the app doesn't crash on boot before you set variables
+client = AsyncIOMotorClient(mongo_url or "mongodb://localhost:27017")
+db = client[db_name or "test_db"]
+# mongo_url = os.environ['MONGO_URL']
+# client = AsyncIOMotorClient(mongo_url)
+# db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'gamebrew-secret-key-change-in-prod')
 JWT_ALGO = 'HS256'
@@ -402,6 +412,9 @@ async def admin_notifications(_=Depends(verify_admin), limit: int = 50):
     items = await db.notifications.find({}, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return {"items": items}
 
+@app.get("/")
+async def render_health_check():
+    return {"status": "ok", "message": "Server is running"}
 
 app.include_router(api_router)
 
