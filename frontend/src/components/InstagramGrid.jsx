@@ -44,10 +44,7 @@ export default function InstagramGrid() {
                             className="relative group overflow-hidden aspect-square border border-white/5"
                         >
                             <img src={t.img} alt={t.caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/70 transition-colors flex items-end p-4">
-                                <p className="font-display text-xs uppercase tracking-wider text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {t.caption}
-                                </p>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end p-4">
                             </div>
                             <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Instagram size={18} className="text-white"/>

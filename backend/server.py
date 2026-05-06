@@ -12,6 +12,9 @@ from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
+from fastapi import WebSocket, WebSocketDisconnect
+import httpx
+import asyncio
 
 
 ROOT_DIR = Path(__file__).parent
@@ -84,7 +87,27 @@ SERVICES = {
     },
 }
 
-TIME_SLOTS = [f"{h:02d}:00" for h in range(11, 23)]  # 11:00 to 22:00
+TIME_SLOTS = ["11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM", "10:00 PM"]
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception:
+                pass
+
+manager = ConnectionManager()
 
 
 class BookingCreate(BaseModel):
@@ -277,6 +300,13 @@ async def create_booking(payload: BookingCreate):
         "is_read": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
+    
+    # Broadcast to admin
+    asyncio.create_task(manager.broadcast({
+        "type": "booking",
+        "title": f"New booking: {svc['name']}",
+        "message": f"{payload.name} booked {svc['name']} on {payload.booking_date} at {payload.time_slot}"
+    }))
 
     return {"success": True, "booking": {k: v for k, v in doc.items() if k != "_id"}}
 
@@ -376,7 +406,34 @@ async def admin_list_bookings(_=Depends(verify_admin), status_filter: Optional[s
     if status_filter:
         q["status"] = status_filter
     items = await db.bookings.find(q, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    
+    # Sort pending items to the top
+    items.sort(key=lambda x: 0 if x.get("status") == "pending" else 1)
+    
     return {"items": items}
+
+async def send_whatsapp_message_meta(phone_to: str, message: str):
+    """
+    Stub for Meta WhatsApp API Integration.
+    Replace META_PHONE_ID and META_BEARER_TOKEN with actual credentials.
+    """
+    url = "https://graph.facebook.com/v17.0/YOUR_META_PHONE_ID/messages"
+    headers = {
+        "Authorization": "Bearer YOUR_META_BEARER_TOKEN",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone_to,
+        "type": "text",
+        "text": {"body": message}
+    }
+    # try:
+    #     async with httpx.AsyncClient() as client:
+    #         await client.post(url, json=payload, headers=headers)
+    # except Exception as e:
+    #     logger.error(f"WhatsApp sending failed: {e}")
+    logger.info(f"Mock Meta WhatsApp sent to {phone_to}: {message}")
 
 
 @api_router.patch("/admin/bookings/{booking_id}")
@@ -386,6 +443,13 @@ async def admin_update_booking(booking_id: str, payload: BookingStatusUpdate, _=
     res = await db.bookings.update_one({"id": booking_id}, {"$set": {"status": payload.status}})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Booking not found")
+        
+    if payload.status in ["confirmed", "cancelled"]:
+        booking = await db.bookings.find_one({"id": booking_id})
+        if booking:
+            msg = f"Your GameBrew booking for {booking['service_name']} is {payload.status}."
+            asyncio.create_task(send_whatsapp_message_meta(booking['phone'], msg))
+            
     return {"success": True}
 
 
@@ -407,6 +471,16 @@ async def admin_cafe_bookings(_=Depends(verify_admin), limit: int = 200):
     return {"items": items}
 
 
+@api_router.patch("/admin/cafe-bookings/{booking_id}")
+async def admin_update_cafe_booking(booking_id: str, payload: BookingStatusUpdate, _=Depends(verify_admin)):
+    if payload.status not in ["pending", "confirmed", "rejected", "cancelled"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    res = await db.cafe_bookings.update_one({"id": booking_id}, {"$set": {"status": payload.status}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Cafe Booking not found")
+    return {"success": True}
+
+
 @api_router.get("/admin/notifications")
 async def admin_notifications(_=Depends(verify_admin), limit: int = 50):
     items = await db.notifications.find({}, {"_id": 0}).sort("created_at", -1).to_list(limit)
@@ -415,6 +489,15 @@ async def admin_notifications(_=Depends(verify_admin), limit: int = 50):
 @app.get("/")
 async def render_health_check():
     return {"status": "ok", "message": "Server is running"}
+
+@api_router.websocket("/ws/admin")
+async def websocket_admin_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 app.include_router(api_router)
 

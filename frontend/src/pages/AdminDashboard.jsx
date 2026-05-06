@@ -5,7 +5,7 @@ import { toast, Toaster } from "sonner";
 import { IMAGES } from "@/lib/data";
 import {
     LayoutDashboard, CalendarCheck, Mail, Users, LogOut,
-    TrendingUp, DollarSign, Clock, PartyPopper, CheckCircle2, XCircle
+    TrendingUp, DollarSign, Clock, PartyPopper, CheckCircle2, XCircle, Bell
 } from "lucide-react";
 
 const TABS = [
@@ -35,10 +35,37 @@ export default function AdminDashboard() {
     const [bookings, setBookings] = useState([]);
     const [cafeReqs, setCafeReqs] = useState([]);
     const [messages, setMessages] = useState([]);
+    const [notifPerm, setNotifPerm] = useState("Notification" in window ? Notification.permission : "default");
 
     useEffect(() => {
         if (!localStorage.getItem("gb_admin_token")) { nav("/admin/login"); return; }
         load();
+
+        // WebSocket connection for real-time notifications
+        const wsUrl = (process.env.REACT_APP_API_URL || "http://localhost:8000/api")
+            .replace(/^http/, "ws") + "/ws/admin";
+        
+        let ws;
+        try {
+            ws = new WebSocket(wsUrl);
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === "booking") {
+                    // Native Desktop Notification
+                    if ("Notification" in window && Notification.permission === "granted") {
+                        new Notification("New Gamebrew Booking!", { body: "Check the dashboard for details." });
+                    }
+                    // Automatically reload stats on new booking
+                    load();
+                }
+            };
+        } catch (e) {
+            console.error("WebSocket connection failed", e);
+        }
+
+        return () => {
+            if (ws) ws.close();
+        };
     }, []);
 
     const load = async () => {
@@ -67,6 +94,14 @@ export default function AdminDashboard() {
         } catch { toast.error("Update failed"); }
     };
 
+    const updateCafeStatus = async (id, status) => {
+        try {
+            await api.patch(`/admin/cafe-bookings/${id}`, { status });
+            toast.success(`Request ${status}`);
+            load();
+        } catch { toast.error("Update failed"); }
+    };
+
     const logout = () => {
         localStorage.removeItem("gb_admin_token");
         localStorage.removeItem("gb_admin_email");
@@ -75,7 +110,7 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen flex bg-[#030303]" data-testid="admin-dashboard-page">
-            <Toaster richColors position="top-right"/>
+            <Toaster richColors position="top-right" duration={2500}/>
 
             {/* Sidebar */}
             <aside className="w-64 border-r border-white/10 bg-black p-6 hidden md:flex flex-col">
@@ -113,7 +148,16 @@ export default function AdminDashboard() {
                 <button onClick={logout} className="px-3 py-2 text-xs font-display uppercase text-neon-red">Logout</button>
             </div>
 
-            <main className="flex-1 p-6 md:p-10 pt-20 md:pt-10">
+            <main className="flex-1 p-6 md:p-10 pt-20 md:pt-10 relative">
+                {notifPerm !== "granted" && "Notification" in window && (
+                    <button
+                        onClick={() => Notification.requestPermission().then(p => setNotifPerm(p))}
+                        className="absolute top-4 right-4 md:top-10 md:right-10 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/20 text-white/70 hover:bg-white/10 hover:text-white transition-colors text-xs font-display uppercase tracking-widest rounded-none"
+                    >
+                        <Bell size={14}/> Enable Notifications
+                    </button>
+                )}
+
                 {tab === "overview" && stats && (
                     <div data-testid="admin-overview">
                         <h1 className="font-display text-3xl font-bold mb-2">Dashboard</h1>
@@ -147,7 +191,7 @@ export default function AdminDashboard() {
                 {tab === "bookings" && (
                     <div data-testid="admin-bookings-tab">
                         <h1 className="font-display text-3xl font-bold mb-8">Bookings</h1>
-                        <div className="glass overflow-x-auto">
+                        <div className="glass overflow-x-auto hidden md:block">
                             <table className="w-full text-sm">
                                 <thead className="bg-black/50">
                                     <tr className="text-left font-display uppercase tracking-widest text-xs text-white/50">
@@ -183,6 +227,48 @@ export default function AdminDashboard() {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Mobile Card View */}
+                        <div className="grid grid-cols-1 gap-4 md:hidden">
+                            {bookings.map((b) => (
+                                <div key={b.id} className="glass p-5" data-testid={`booking-card-${b.id}`}>
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <div className="font-display text-lg font-bold">{b.name}</div>
+                                            <div className="text-white/50 text-xs">{b.phone}</div>
+                                        </div>
+                                        <span className={`px-2 py-1 text-[10px] font-display uppercase tracking-wider ${
+                                            b.status === "confirmed" ? "bg-green-500/20 text-green-400" :
+                                            b.status === "cancelled" ? "bg-red-500/20 text-red-400" :
+                                            "bg-yellow-500/20 text-yellow-400"
+                                        }`}>{b.status}</span>
+                                    </div>
+                                    <div className="space-y-1 text-sm text-white/70 mb-4">
+                                        <div className="flex justify-between">
+                                            <span>Service:</span> <span className="text-white">{b.service_name}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Date:</span> <span className="text-white">{b.booking_date}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Time:</span> <span className="text-white">{b.time_slot} · {b.duration_hours}h</span>
+                                        </div>
+                                        <div className="flex justify-between border-t border-white/5 pt-1 mt-1">
+                                            <span>Amount:</span> <span className="neon-red font-bold">₹{b.total_amount}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => updateStatus(b.id, "confirmed")} disabled={b.status === "confirmed"} className={`flex-1 flex items-center justify-center gap-2 text-xs font-display uppercase py-2 transition-colors ${b.status === "confirmed" ? "bg-green-500/20 text-green-400 opacity-50 cursor-not-allowed" : "bg-white/5 hover:bg-green-500/20 hover:text-green-400"}`}>
+                                            <CheckCircle2 size={14}/> Confirm
+                                        </button>
+                                        <button onClick={() => updateStatus(b.id, "cancelled")} disabled={b.status === "cancelled"} className={`flex-1 flex items-center justify-center gap-2 text-xs font-display uppercase py-2 transition-colors ${b.status === "cancelled" ? "bg-red-500/20 text-red-400 opacity-50 cursor-not-allowed" : "bg-white/5 hover:bg-red-500/20 hover:text-red-400"}`}>
+                                            <XCircle size={14}/> Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                            {!bookings.length && <p className="text-center text-white/40 p-4 glass">No bookings yet</p>}
+                        </div>
                     </div>
                 )}
 
@@ -200,7 +286,22 @@ export default function AdminDashboard() {
                                         <span className="font-display uppercase text-xs tracking-widest neon-red">{c.event_type}</span>
                                     </div>
                                     <div className="text-sm text-white/70 mb-2">Date: {c.event_date} · Guests: {c.guest_count}</div>
-                                    {c.details && <p className="text-white/60 text-sm italic">"{c.details}"</p>}
+                                    {c.details && <p className="text-white/60 text-sm italic mb-4">"{c.details}"</p>}
+                                    
+                                    <div className="flex gap-2 mt-4 pt-4 border-t border-white/5">
+                                        <button onClick={() => updateCafeStatus(c.id, "confirmed")} disabled={c.status === "confirmed"} className={`flex-1 text-xs font-display uppercase py-2 transition-colors ${c.status === "confirmed" ? "bg-green-500/20 text-green-400 opacity-50 cursor-not-allowed" : "bg-white/5 hover:bg-green-500/20 hover:text-green-400"}`}>
+                                            Accept
+                                        </button>
+                                        <button onClick={() => updateCafeStatus(c.id, "rejected")} disabled={c.status === "rejected"} className={`flex-1 text-xs font-display uppercase py-2 transition-colors ${c.status === "rejected" ? "bg-red-500/20 text-red-400 opacity-50 cursor-not-allowed" : "bg-white/5 hover:bg-red-500/20 hover:text-red-400"}`}>
+                                            Reject
+                                        </button>
+                                        <a href={`tel:${c.phone}`} className="flex-1 text-xs font-display uppercase py-2 bg-white/5 hover:bg-blue-500/20 hover:text-blue-400 flex items-center justify-center transition-colors">
+                                            Call
+                                        </a>
+                                    </div>
+                                    <div className="mt-2 text-center text-[10px] uppercase font-display text-white/40 tracking-widest">
+                                        Status: <span className={c.status === "confirmed" ? "text-green-400" : c.status === "rejected" ? "text-red-400" : "text-yellow-400"}>{c.status}</span>
+                                    </div>
                                 </div>
                             ))}
                             {!cafeReqs.length && <p className="text-white/40">No requests yet</p>}

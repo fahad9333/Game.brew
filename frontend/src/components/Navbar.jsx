@@ -1,12 +1,14 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ShoppingCart } from "lucide-react";
 import { IMAGES } from "@/lib/data";
+import { useCart } from "@/context/CartContext";
 
 const links = [
     { to: "/", label: "Home" },
     { to: "/about", label: "About" },
     { to: "/services", label: "Services" },
+    { to: "/games", label: "Games" },
     { to: "/booking", label: "Book Now" },
     { to: "/cafe-booking", label: "Full Café" },
     { to: "/contact", label: "Contact" },
@@ -16,6 +18,7 @@ export default function Navbar() {
     const [open, setOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const loc = useLocation();
+    const { cart } = useCart();
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 20);
@@ -58,22 +61,42 @@ export default function Navbar() {
                     ))}
                 </nav>
 
-                <Link
-                    to="/booking"
-                    data-testid="navbar-cta-book-btn"
-                    className="hidden lg:inline-flex items-center btn-clip bg-neon-red hover:bg-neon-redSoft text-white font-display uppercase tracking-wider text-sm px-6 py-3 transition-colors"
-                >
-                    Book Slot
-                </Link>
+                <div className="hidden lg:flex items-center gap-4">
+                    {cart.length > 0 && (
+                        <Link to="/checkout" className="relative text-white hover:text-neon-red transition-colors">
+                            <ShoppingCart size={24} />
+                            <span className="absolute -top-2 -right-2 bg-neon-red text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                {cart.length}
+                            </span>
+                        </Link>
+                    )}
+                    <Link
+                        to="/booking"
+                        data-testid="navbar-cta-book-btn"
+                        className="inline-flex items-center btn-clip bg-neon-red hover:bg-neon-redSoft text-white font-display uppercase tracking-wider text-sm px-6 py-3 transition-colors"
+                    >
+                        Book Slot
+                    </Link>
+                </div>
 
-                <button
-                    className="lg:hidden text-white"
-                    onClick={() => setOpen((v) => !v)}
-                    aria-label="menu"
-                    data-testid="mobile-menu-toggle"
-                >
-                    {open ? <X /> : <Menu />}
-                </button>
+                <div className="lg:hidden flex items-center gap-4">
+                    {cart.length > 0 && (
+                        <Link to="/checkout" className="relative text-white hover:text-neon-red transition-colors">
+                            <ShoppingCart size={24} />
+                            <span className="absolute -top-2 -right-2 bg-neon-red text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                {cart.length}
+                            </span>
+                        </Link>
+                    )}
+                    <button
+                        className="text-white"
+                        onClick={() => setOpen((v) => !v)}
+                        aria-label="menu"
+                        data-testid="mobile-menu-toggle"
+                    >
+                        {open ? <X /> : <Menu />}
+                    </button>
+                </div>
             </div>
 
             {open && (

@@ -1,21 +1,22 @@
 import { useEffect, useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { api, waLink, handleExternalClick } from "@/lib/api";
 import { toast, Toaster } from "sonner";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
 export default function Booking() {
     const [params] = useSearchParams();
+    const navigate = useNavigate();
     const [services, setServices] = useState([]);
     const [slots, setSlots] = useState([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [confirmed, setConfirmed] = useState(null);
+    
+    const { addToCart } = useCart();
 
     const [form, setForm] = useState({
-        name: "", phone: "", email: "",
         service_id: params.get("service") || "pc",
         booking_date: todayStr(),
         time_slot: "11:00",
@@ -31,7 +32,34 @@ export default function Booking() {
         if (!form.service_id || !form.booking_date) return;
         setLoadingSlots(true);
         api.get("/availability", { params: { service_id: form.service_id, booking_date: form.booking_date } })
-            .then((r) => setSlots(r.data.slots || []))
+            .then((r) => {
+                // Filter slots that have already passed if it's today
+                const isToday = form.booking_date === todayStr();
+                const now = new Date();
+                const currentHour = now.getHours();
+                
+                const filteredSlots = (r.data.slots || []).map(s => {
+                    // Expects s.time in "HH:MM" or "12-hour AM/PM" format
+                    // Right now we will assume the backend might send either, but let's parse it safely
+                    let slotHourStr = s.time.split(":")[0];
+                    let isAM = s.time.toLowerCase().includes("am");
+                    let isPM = s.time.toLowerCase().includes("pm");
+                    
+                    let slotHour = parseInt(slotHourStr, 10);
+                    if (isPM && slotHour !== 12) slotHour += 12;
+                    if (isAM && slotHour === 12) slotHour = 0;
+
+                    const isPast = isToday && slotHour <= currentHour;
+
+                    return {
+                        ...s,
+                        is_full: s.is_full || isPast,
+                        available: isPast ? 0 : s.available
+                    };
+                });
+                
+                setSlots(filteredSlots);
+            })
             .finally(() => setLoadingSlots(false));
     }, [form.service_id, form.booking_date]);
 
@@ -39,61 +67,52 @@ export default function Booking() {
 
     const totalAmount = (currentService?.price_per_hour || 0) * form.duration_hours;
 
-    const submit = async (e) => {
-        e.preventDefault();
-        if (!form.name || !form.phone || !form.email) {
-            toast.error("Please fill name, phone and email");
-            return;
-        }
-        setSubmitting(true);
-        try {
-            const { data } = await api.post("/bookings", form);
-            setConfirmed(data.booking);
-            toast.success("Booking received! We'll confirm shortly.");
-        } catch (err) {
-            const msg = err?.response?.data?.detail || "Booking failed";
-            toast.error(msg);
-        } finally {
-            setSubmitting(false);
-        }
+    const handleAddToCart = () => {
+        addToCart({
+            service_id: form.service_id,
+            service_name: currentService.name,
+            booking_date: form.booking_date,
+            time_slot: form.time_slot,
+            duration_hours: form.duration_hours,
+            total_amount: totalAmount,
+            notes: form.notes
+        });
+
+        toast.success(`${currentService.name} added to cart!`);
     };
 
-    if (confirmed) {
-        return (
-            <div className="min-h-[70vh] flex items-center justify-center px-6" data-testid="booking-confirmation">
-                <div className="glass p-10 max-w-xl w-full text-center">
-                    <CheckCircle2 className="mx-auto text-neon-red mb-4" size={56}/>
-                    <h2 className="font-display text-3xl font-bold mb-2">Booking Received</h2>
-                    <p className="text-white/70 mb-6">Booking ID: <span className="neon-red">{confirmed.id.slice(0, 8)}</span></p>
-                    <div className="text-left space-y-2 mb-6 text-white/80 text-sm">
-                        <div><span className="text-white/50 uppercase tracking-widest text-xs font-display">Service:</span> {confirmed.service_name}</div>
-                        <div><span className="text-white/50 uppercase tracking-widest text-xs font-display">When:</span> {confirmed.booking_date} · {confirmed.time_slot} · {confirmed.duration_hours}h</div>
-                        <div><span className="text-white/50 uppercase tracking-widest text-xs font-display">Total:</span> ₹{confirmed.total_amount}</div>
-                    </div>
-                    <a
-                        href={waLink(`Hi, I just booked ${confirmed.service_name} on ${confirmed.booking_date} at ${confirmed.time_slot}. Booking ID: ${confirmed.id.slice(0,8)}`)}
-                        onClick={handleExternalClick(waLink(`Hi, I just booked ${confirmed.service_name} on ${confirmed.booking_date} at ${confirmed.time_slot}. Booking ID: ${confirmed.id.slice(0,8)}`))}
-                        target="_blank" rel="noreferrer"
-                        className="btn-clip inline-block bg-[#25D366] hover:bg-[#1db855] text-black font-display uppercase tracking-wider text-sm px-6 py-3"
-                        data-testid="confirm-whatsapp-btn"
-                    >
-                        Confirm on WhatsApp
-                    </a>
-                </div>
-                <Toaster richColors position="top-right"/>
-            </div>
-        );
-    }
+    const handleBookNow = () => {
+        addToCart({
+            service_id: form.service_id,
+            service_name: currentService.name,
+            booking_date: form.booking_date,
+            time_slot: form.time_slot,
+            duration_hours: form.duration_hours,
+            total_amount: totalAmount,
+            notes: form.notes
+        });
+        navigate("/checkout");
+    };
+
+    const handleWhatsApp = () => {
+        const msg = `Hi, I want to book a slot at GAMEBREW:\n\n*Service:* ${currentService?.name}\n*Date:* ${form.booking_date}\n*Time:* ${form.time_slot}\n*Duration:* ${form.duration_hours} hour(s)\n*Total:* ₹${totalAmount}`;
+        handleExternalClick(waLink(msg))();
+    };
 
     return (
         <div className="min-h-screen py-12" data-testid="booking-page">
-            <Toaster richColors position="top-right"/>
+            <Toaster richColors position="top-right" duration={2500}/>
             <div className="max-w-7xl mx-auto px-6">
                 <div className="font-display text-xs tracking-[0.5em] text-neon-red uppercase mb-3">// Reserve your slot</div>
-                <h1 className="font-display text-4xl md:text-6xl font-black mb-10">Book a <span className="neon-red">Session</span></h1>
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+                    <h1 className="font-display text-4xl md:text-6xl font-black">Book a <span className="neon-red">Session</span></h1>
+                    <button onClick={() => navigate("/checkout")} className="btn-clip border border-neon-red text-neon-red hover:bg-neon-red hover:text-white px-6 py-3 font-display uppercase text-sm transition-colors w-fit">
+                        Go to Checkout
+                    </button>
+                </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
-                    <form onSubmit={submit} className="lg:col-span-2 glass p-6 md:p-8 space-y-5" data-testid="booking-form">
+                    <form onSubmit={(e) => e.preventDefault()} className="lg:col-span-2 glass p-6 md:p-8 space-y-5" data-testid="booking-form">
                         <div>
                             <label className="font-display uppercase tracking-widest text-xs text-white/60 mb-2 block">Game Type</label>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -167,7 +186,7 @@ export default function Booking() {
                                                 }`}
                                             >
                                                 {s.time}
-                                                {isLow && !isSelected && (
+                                                {isLow && !isSelected && !s.is_full && (
                                                     <span className="absolute -top-2 -right-2 text-[10px] bg-neon-red text-white px-1.5 py-0.5">
                                                         {s.available} left
                                                     </span>
@@ -179,40 +198,32 @@ export default function Booking() {
                             )}
                         </div>
 
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <input required placeholder="Your Name" value={form.name} onChange={(e) => update("name", e.target.value)}
-                                data-testid="booking-name-input"
-                                className="bg-black/50 border border-white/20 px-4 py-3 text-white focus:border-neon-red outline-none placeholder:text-white/40"/>
-                            <input required placeholder="Phone" value={form.phone} onChange={(e) => update("phone", e.target.value)}
-                                data-testid="booking-phone-input"
-                                className="bg-black/50 border border-white/20 px-4 py-3 text-white focus:border-neon-red outline-none placeholder:text-white/40"/>
-                        </div>
-                        <input required type="email" placeholder="Email" value={form.email} onChange={(e) => update("email", e.target.value)}
-                            data-testid="booking-email-input"
-                            className="w-full bg-black/50 border border-white/20 px-4 py-3 text-white focus:border-neon-red outline-none placeholder:text-white/40"/>
                         <textarea placeholder="Notes (optional)" rows={3} value={form.notes} onChange={(e) => update("notes", e.target.value)}
                             data-testid="booking-notes-input"
                             className="w-full bg-black/50 border border-white/20 px-4 py-3 text-white focus:border-neon-red outline-none placeholder:text-white/40"/>
 
-                        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                        <div className="flex flex-col md:flex-row gap-3 pt-2">
                             <button
-                                type="submit"
-                                disabled={submitting}
-                                data-testid="booking-submit-btn"
-                                className="btn-clip flex-1 bg-neon-red hover:bg-neon-redSoft text-white font-display uppercase tracking-widest text-sm px-6 py-4 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                                type="button"
+                                onClick={handleBookNow}
+                                className="btn-clip flex-1 bg-neon-red hover:bg-neon-redSoft text-white font-display uppercase tracking-widest text-sm px-4 py-4 inline-flex items-center justify-center gap-2"
                             >
-                                {submitting ? <Loader2 className="animate-spin" size={16}/> : null}
-                                Confirm Booking · ₹{totalAmount}
+                                Book Now
                             </button>
-                            <a
-                                href={waLink(`Hi, I want to book ${currentService?.name || "a slot"} on ${form.booking_date} at ${form.time_slot} for ${form.duration_hours} hour(s). Name: ${form.name || "—"}`)}
-                                onClick={handleExternalClick(waLink(`Hi, I want to book ${currentService?.name || "a slot"} on ${form.booking_date} at ${form.time_slot} for ${form.duration_hours} hour(s). Name: ${form.name || "—"}`))}
-                                target="_blank" rel="noreferrer"
-                                data-testid="booking-whatsapp-btn"
-                                className="btn-clip border border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-black font-display uppercase tracking-widest text-sm px-6 py-4 inline-flex items-center justify-center transition-colors"
+                            <button
+                                type="button"
+                                onClick={handleAddToCart}
+                                className="btn-clip flex-1 border border-neon-red text-neon-red hover:bg-neon-red/10 font-display uppercase tracking-widest text-sm px-4 py-4 inline-flex items-center justify-center gap-2 transition-colors"
                             >
-                                Book via WhatsApp
-                            </a>
+                                Add to Cart
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleWhatsApp}
+                                className="btn-clip flex-1 bg-[#25D366] hover:bg-[#128C7E] text-white font-display uppercase tracking-widest text-sm px-4 py-4 inline-flex items-center justify-center gap-2 transition-colors"
+                            >
+                                WhatsApp
+                            </button>
                         </div>
                     </form>
 
