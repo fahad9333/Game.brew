@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { toast, Toaster } from "sonner";
@@ -35,11 +35,20 @@ export default function AdminDashboard() {
     const [bookings, setBookings] = useState([]);
     const [cafeReqs, setCafeReqs] = useState([]);
     const [messages, setMessages] = useState([]);
-    const [notifPerm, setNotifPerm] = useState("Notification" in window ? Notification.permission : "default");
+    const [notifEnabled, setNotifEnabled] = useState(false);
+    const notifRef = useRef(false);
+
+    useEffect(() => {
+        notifRef.current = notifEnabled;
+    }, [notifEnabled]);
 
     useEffect(() => {
         if (!localStorage.getItem("gb_admin_token")) { nav("/admin/login"); return; }
         load();
+        
+        if ("Notification" in window && Notification.permission === "granted") {
+            setNotifEnabled(true);
+        }
 
         // WebSocket connection for real-time notifications
         const wsUrl = (process.env.REACT_APP_API_URL || "http://localhost:8000/api")
@@ -52,7 +61,7 @@ export default function AdminDashboard() {
                 const data = JSON.parse(event.data);
                 if (data.type === "booking") {
                     // Native Desktop Notification
-                    if ("Notification" in window && Notification.permission === "granted") {
+                    if (notifRef.current) {
                         new Notification("New Gamebrew Booking!", { body: "Check the dashboard for details." });
                     }
                     // Automatically reload stats on new booking
@@ -86,11 +95,38 @@ export default function AdminDashboard() {
         }
     };
 
-    const updateStatus = async (id, status) => {
+    const openWhatsAppConfirmation = (booking) => {
+        let cleanPhone = booking.phone.replace(/[^0-9]/g, '');
+        if (cleanPhone.length >= 10 && !cleanPhone.startsWith('91')) {
+            cleanPhone = '91' + cleanPhone.slice(-10);
+        }
+        const msg = `🎮 *Booking Confirmed!*\nHi ${booking.name}, your booking for ${booking.service_name} on ${booking.booking_date} at ${booking.time_slot} is confirmed. See you at Gamebrew!`;
+        const encodedMsg = encodeURIComponent(msg);
+        const url = `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
+        window.open(url, '_blank');
+    };
+
+    const openWhatsAppCancellation = (booking) => {
+        let cleanPhone = booking.phone.replace(/[^0-9]/g, '');
+        if (cleanPhone.length >= 10 && !cleanPhone.startsWith('91')) {
+            cleanPhone = '91' + cleanPhone.slice(-10);
+        }
+        const msg = `🎮 *Booking Update*\nHi ${booking.name}, unfortunately we are unable to confirm your booking for ${booking.service_name} on ${booking.booking_date} at ${booking.time_slot}. Please reach out to us for alternative times. We apologize for the inconvenience!`;
+        const encodedMsg = encodeURIComponent(msg);
+        const url = `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
+        window.open(url, '_blank');
+    };
+
+    const updateStatus = async (booking, status) => {
         try {
-            await api.patch(`/admin/bookings/${id}`, { status });
+            await api.patch(`/admin/bookings/${booking.id}`, { status });
             toast.success(`Booking ${status}`);
             load();
+            if (status === "confirmed") {
+                openWhatsAppConfirmation(booking);
+            } else if (status === "cancelled" || status === "rejected") {
+                openWhatsAppCancellation(booking);
+            }
         } catch { toast.error("Update failed"); }
     };
 
@@ -106,6 +142,22 @@ export default function AdminDashboard() {
         localStorage.removeItem("gb_admin_token");
         localStorage.removeItem("gb_admin_email");
         nav("/admin/login");
+    };
+
+    const handleToggleNotif = async () => {
+        if (notifEnabled) {
+            setNotifEnabled(false);
+            return;
+        }
+        if (!("Notification" in window)) return;
+        
+        const p = await Notification.requestPermission();
+        if (p === "granted") {
+            setNotifEnabled(true);
+        } else {
+            setNotifEnabled(false);
+            toast.error("Permission blocked by browser.");
+        }
     };
 
     return (
@@ -149,14 +201,17 @@ export default function AdminDashboard() {
             </div>
 
             <main className="flex-1 p-6 md:p-10 pt-20 md:pt-10 relative">
-                {notifPerm !== "granted" && "Notification" in window && (
+                <div className="absolute top-4 right-4 md:top-10 md:right-10 flex items-center gap-3">
+                    <span className="text-xs font-display uppercase tracking-widest text-white/60">
+                        Notifications
+                    </span>
                     <button
-                        onClick={() => Notification.requestPermission().then(p => setNotifPerm(p))}
-                        className="absolute top-4 right-4 md:top-10 md:right-10 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/20 text-white/70 hover:bg-white/10 hover:text-white transition-colors text-xs font-display uppercase tracking-widest rounded-none"
+                        onClick={handleToggleNotif}
+                        className={`w-12 h-6 rounded-full transition-colors relative ${notifEnabled ? 'bg-neon-red' : 'bg-white/10'}`}
                     >
-                        <Bell size={14}/> Enable Notifications
+                        <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${notifEnabled ? 'left-7' : 'left-1'}`} />
                     </button>
-                )}
+                </div>
 
                 {tab === "overview" && stats && (
                     <div data-testid="admin-overview">
@@ -218,8 +273,8 @@ export default function AdminDashboard() {
                                                 }`}>{b.status}</span>
                                             </td>
                                             <td className="p-4 flex gap-1">
-                                                <button onClick={() => updateStatus(b.id, "confirmed")} data-testid={`confirm-${b.id}`} title="Confirm" className="p-1 text-green-400 hover:bg-green-500/20"><CheckCircle2 size={16}/></button>
-                                                <button onClick={() => updateStatus(b.id, "cancelled")} data-testid={`cancel-${b.id}`} title="Cancel" className="p-1 text-red-400 hover:bg-red-500/20"><XCircle size={16}/></button>
+                                                <button onClick={() => updateStatus(b, "confirmed")} data-testid={`confirm-${b.id}`} title="Confirm" className="p-1 text-green-400 hover:bg-green-500/20"><CheckCircle2 size={16}/></button>
+                                                <button onClick={() => updateStatus(b, "cancelled")} data-testid={`cancel-${b.id}`} title="Cancel" className="p-1 text-red-400 hover:bg-red-500/20"><XCircle size={16}/></button>
                                             </td>
                                         </tr>
                                     ))}
@@ -258,10 +313,10 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button onClick={() => updateStatus(b.id, "confirmed")} disabled={b.status === "confirmed"} className={`flex-1 flex items-center justify-center gap-2 text-xs font-display uppercase py-2 transition-colors ${b.status === "confirmed" ? "bg-green-500/20 text-green-400 opacity-50 cursor-not-allowed" : "bg-white/5 hover:bg-green-500/20 hover:text-green-400"}`}>
+                                        <button onClick={() => updateStatus(b, "confirmed")} disabled={b.status === "confirmed"} className={`flex-1 flex items-center justify-center gap-2 text-xs font-display uppercase py-2 transition-colors ${b.status === "confirmed" ? "bg-green-500/20 text-green-400 opacity-50 cursor-not-allowed" : "bg-white/5 hover:bg-green-500/20 hover:text-green-400"}`}>
                                             <CheckCircle2 size={14}/> Confirm
                                         </button>
-                                        <button onClick={() => updateStatus(b.id, "cancelled")} disabled={b.status === "cancelled"} className={`flex-1 flex items-center justify-center gap-2 text-xs font-display uppercase py-2 transition-colors ${b.status === "cancelled" ? "bg-red-500/20 text-red-400 opacity-50 cursor-not-allowed" : "bg-white/5 hover:bg-red-500/20 hover:text-red-400"}`}>
+                                        <button onClick={() => updateStatus(b, "cancelled")} disabled={b.status === "cancelled"} className={`flex-1 flex items-center justify-center gap-2 text-xs font-display uppercase py-2 transition-colors ${b.status === "cancelled" ? "bg-red-500/20 text-red-400 opacity-50 cursor-not-allowed" : "bg-white/5 hover:bg-red-500/20 hover:text-red-400"}`}>
                                             <XCircle size={14}/> Cancel
                                         </button>
                                     </div>
