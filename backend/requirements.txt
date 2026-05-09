@@ -1,5 +1,5 @@
 fastapi==0.110.1
-uvicorn==0.25.0
+uvicorn[standard]==0.25.0
 gunicorn>=21.2.0
 python-dotenv>=1.0.1
 pymongo>=4.9.0
@@ -11,3 +11,4 @@ passlib>=1.7.4
 motor>=3.7.1
 python-multipart>=0.0.9
 httpx
+websockets>=12.0
