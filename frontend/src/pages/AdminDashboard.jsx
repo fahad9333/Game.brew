@@ -95,40 +95,53 @@ export default function AdminDashboard() {
         }
     };
 
-    const openWhatsAppConfirmation = (booking) => {
-        let cleanPhone = booking.phone.replace(/[^0-9]/g, '');
-        if (cleanPhone.length >= 10 && !cleanPhone.startsWith('91')) {
-            cleanPhone = '91' + cleanPhone.slice(-10);
-        }
-        const msg = `🎮 *Booking Confirmed!*\nHi ${booking.name}, your booking for ${booking.service_name} on ${booking.booking_date} at ${booking.time_slot} is confirmed. See you at Gamebrew!`;
-        const encodedMsg = encodeURIComponent(msg);
-        const url = `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
-        window.open(url, '_blank');
-    };
+   const getWhatsAppConfirmationUrl = (booking) => {
+    let cleanPhone = booking.phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length >= 10 && !cleanPhone.startsWith('91')) {
+        cleanPhone = '91' + cleanPhone.slice(-10);
+    }
+    const msg = `🎮 *Booking Confirmed!*\nHi ${booking.name}, your booking for ${booking.service_name} on ${booking.booking_date} at ${booking.time_slot} is confirmed. See you at Gamebrew!`;
+    const encodedMsg = encodeURIComponent(msg);
+    return `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
+};
 
-    const openWhatsAppCancellation = (booking) => {
-        let cleanPhone = booking.phone.replace(/[^0-9]/g, '');
-        if (cleanPhone.length >= 10 && !cleanPhone.startsWith('91')) {
-            cleanPhone = '91' + cleanPhone.slice(-10);
-        }
-        const msg = `🎮 *Booking Update*\nHi ${booking.name}, unfortunately we are unable to confirm your booking for ${booking.service_name} on ${booking.booking_date} at ${booking.time_slot}. Please reach out to us for alternative times. We apologize for the inconvenience!`;
-        const encodedMsg = encodeURIComponent(msg);
-        const url = `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
-        window.open(url, '_blank');
-    };
+const getWhatsAppCancellationUrl = (booking) => {
+    let cleanPhone = booking.phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length >= 10 && !cleanPhone.startsWith('91')) {
+        cleanPhone = '91' + cleanPhone.slice(-10);
+    }
+    const msg = `🎮 *Booking Update*\nHi ${booking.name}, unfortunately we are unable to confirm your booking for ${booking.service_name} on ${booking.booking_date} at ${booking.time_slot}. Please reach out to us for alternative times. We apologize for the inconvenience!`;
+    const encodedMsg = encodeURIComponent(msg);
+    return `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
+};
 
     const updateStatus = async (booking, status) => {
-        try {
-            await api.patch(`/admin/bookings/${booking.id}`, { status });
-            toast.success(`Booking ${status}`);
-            load();
+    // 1. Open a blank tab IMMEDIATELY (This sneaks past the popup blocker)
+    let waWindow = null;
+    if (status === "confirmed" || status === "cancelled" || status === "rejected") {
+        waWindow = window.open('about:blank', '_blank');
+    }
+
+    try {
+        // 2. Do the slow database update
+        await api.patch(`/admin/bookings/${booking.id}`, { status });
+        toast.success(`Booking ${status}`);
+        load();
+        
+        // 3. Database is done! Redirect our blank tab to the WhatsApp URL
+        if (waWindow) {
             if (status === "confirmed") {
-                openWhatsAppConfirmation(booking);
+                waWindow.location.href = getWhatsAppConfirmationUrl(booking);
             } else if (status === "cancelled" || status === "rejected") {
-                openWhatsAppCancellation(booking);
+                waWindow.location.href = getWhatsAppCancellationUrl(booking);
             }
-        } catch { toast.error("Update failed"); }
-    };
+        }
+    } catch { 
+        // 4. If the database update fails, close the blank tab
+        if (waWindow) waWindow.close();
+        toast.error("Update failed"); 
+    }
+};
 
     const updateCafeStatus = async (id, status) => {
         try {
