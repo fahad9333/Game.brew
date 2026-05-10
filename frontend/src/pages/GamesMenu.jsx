@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GAMES_MENU } from "@/lib/data";
+import { GAMES_MENU, IMAGES } from "@/lib/data";
 
 const TABS = [
     { id: "pc", label: "PC Games" },
@@ -8,6 +8,17 @@ const TABS = [
     { id: "cafe", label: "Food & Café" },
     { id: "pool", label: "Pool" },
 ];
+
+const getImagePathBase = (category, name) => {
+    // Map categories to their respective folder names
+    let folder = category;
+    if (category === "pc") folder = "PC games";
+    if (category === "ps5") folder = "PS5";
+    if (category === "racing") folder = "SIM Racing";
+    
+    // Safely encode the URI to handle spaces and special characters, without the extension
+    return encodeURI(`/assets/images/games/${folder}/${name}`);
+};
 
 export default function GamesMenu() {
     const [activeTab, setActiveTab] = useState("pc");
@@ -50,8 +61,22 @@ export default function GamesMenu() {
                             <div key={i} className="glass glass-hover rounded-xl overflow-hidden group rise-in" style={{ animationDelay: `${i * 50}ms` }}>
                                 <div className="aspect-[4/3] overflow-hidden relative">
                                     <img 
-                                        src={item.image} 
+                                        src={`${getImagePathBase(activeTab, item.name)}.jpg`} 
+                                        data-ext=".jpg"
                                         alt={item.name} 
+                                        onError={(e) => {
+                                            const exts = ['.jpg', '.jpeg', '.png'];
+                                            const currentExt = e.target.getAttribute('data-ext') || '.jpg';
+                                            const nextIdx = exts.indexOf(currentExt) + 1;
+                                            if (nextIdx < exts.length) {
+                                                const nextExt = exts[nextIdx];
+                                                e.target.setAttribute('data-ext', nextExt);
+                                                e.target.src = `${getImagePathBase(activeTab, item.name)}${nextExt}`;
+                                            } else {
+                                                e.target.onerror = null; // Prevent infinite loop if fallback fails
+                                                e.target.src = IMAGES.logo || "/assets/images/logo.jpeg";
+                                            }
+                                        }}
                                         className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700" 
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
