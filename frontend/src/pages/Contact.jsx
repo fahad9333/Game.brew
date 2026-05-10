@@ -22,7 +22,7 @@ export default function Contact() {
 
     return (
         <div className="min-h-screen py-12" data-testid="contact-page">
-            <Toaster richColors position="top-right"/>
+            <Toaster richColors position="top-right" />
             <div className="max-w-7xl mx-auto px-6">
                 <div className="font-display text-xs tracking-[0.5em] text-neon-red uppercase mb-3">// Come say hi</div>
                 <h1 className="font-display text-4xl md:text-6xl font-black mb-10">Contact <span className="neon-red">GAMEBREW</span></h1>
@@ -33,24 +33,24 @@ export default function Contact() {
                             <div className="grid md:grid-cols-2 gap-4">
                                 <input required placeholder="Name" value={form.name} onChange={(e) => update("name", e.target.value)}
                                     data-testid="contact-name-input"
-                                    className="bg-black/50 border border-white/20 px-4 py-3 focus:border-neon-red outline-none placeholder:text-white/40"/>
+                                    className="bg-black/50 border border-white/20 px-4 py-3 focus:border-neon-red outline-none placeholder:text-white/40" />
                                 <input required type="email" placeholder="Email" value={form.email} onChange={(e) => update("email", e.target.value)}
                                     data-testid="contact-email-input"
-                                    className="bg-black/50 border border-white/20 px-4 py-3 focus:border-neon-red outline-none placeholder:text-white/40"/>
+                                    className="bg-black/50 border border-white/20 px-4 py-3 focus:border-neon-red outline-none placeholder:text-white/40" />
                             </div>
                             <div className="grid md:grid-cols-2 gap-4">
                                 <input placeholder="Phone (optional)" value={form.phone} onChange={(e) => update("phone", e.target.value)}
                                     data-testid="contact-phone-input"
-                                    className="bg-black/50 border border-white/20 px-4 py-3 focus:border-neon-red outline-none placeholder:text-white/40"/>
+                                    className="bg-black/50 border border-white/20 px-4 py-3 focus:border-neon-red outline-none placeholder:text-white/40" />
                                 <input placeholder="Subject" value={form.subject} onChange={(e) => update("subject", e.target.value)}
                                     data-testid="contact-subject-input"
-                                    className="bg-black/50 border border-white/20 px-4 py-3 focus:border-neon-red outline-none placeholder:text-white/40"/>
+                                    className="bg-black/50 border border-white/20 px-4 py-3 focus:border-neon-red outline-none placeholder:text-white/40" />
                             </div>
                             <textarea required rows={5} placeholder="Your message..." value={form.message} onChange={(e) => update("message", e.target.value)}
                                 data-testid="contact-message-input"
-                                className="w-full bg-black/50 border border-white/20 px-4 py-3 focus:border-neon-red outline-none placeholder:text-white/40"/>
+                                className="w-full bg-black/50 border border-white/20 px-4 py-3 focus:border-neon-red outline-none placeholder:text-white/40" />
                             <button type="submit" data-testid="contact-submit-btn" className="btn-clip bg-neon-red text-white font-display uppercase tracking-widest text-sm px-6 py-3 inline-flex items-center gap-2">
-                                <Send size={14}/> Send Message
+                                <Send size={14} /> Send Message
                             </button>
                             {sent && <p className="text-green-400 text-sm">Thanks! We'll reach out soon.</p>}
                         </form>
@@ -58,7 +58,7 @@ export default function Contact() {
                         <div className="mt-6 aspect-[16/9] border border-white/10">
                             <iframe
                                 title="GAMEBREW on map"
-                                src="https://www.google.com/maps?q=Belagavi,Karnataka&output=embed"
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15353.906938115757!2d74.48409045520158!3d15.831521721805592!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bbf6741bfb4f5d1%3A0xe5213b53fbfc5308!2sGAMEBREW!5e0!3m2!1sen!2sin!4v1778415377111!5m2!1sen!2sin"
                                 className="w-full h-full"
                                 loading="lazy"
                                 data-testid="map-iframe"
@@ -68,17 +68,17 @@ export default function Contact() {
 
                     <div className="space-y-3">
                         <div className="glass p-6">
-                            <Phone className="text-neon-red mb-3"/>
+                            <Phone className="text-neon-red mb-3" />
                             <div className="font-display uppercase tracking-widest text-xs text-white/50">Call us</div>
-                            <a href={`tel:+${PHONE_DISPLAY.replace(/\s/g,"").replace("+","")}`} className="font-display text-xl mt-1 block hover:text-neon-red" data-testid="contact-phone-link">{PHONE_DISPLAY}</a>
+                            <a href={`tel:+${PHONE_DISPLAY.replace(/\s/g, "").replace("+", "")}`} className="font-display text-xl mt-1 block hover:text-neon-red" data-testid="contact-phone-link">{PHONE_DISPLAY}</a>
                         </div>
                         <div className="glass p-6">
-                            <Mail className="text-neon-red mb-3"/>
+                            <Mail className="text-neon-red mb-3" />
                             <div className="font-display uppercase tracking-widest text-xs text-white/50">Email</div>
                             <a href={`mailto:${EMAIL}`} className="font-display text-lg mt-1 block hover:text-neon-red break-all" data-testid="contact-email-link">{EMAIL}</a>
                         </div>
                         <div className="glass p-6">
-                            <MapPin className="text-neon-red mb-3"/>
+                            <MapPin className="text-neon-red mb-3" />
                             <div className="font-display uppercase tracking-widest text-xs text-white/50">Location</div>
                             <div className="font-display text-lg mt-1">Second Floor, Khanapur Main Rd, above KFC, beside Axis Bank, Mrutyunajay Nagar, Hindu Nagar, Tilakwadi, Belagavi, Karnataka 590006</div>
                             <div className="text-white/60 text-sm mt-1">Open 11 AM – 11 PM</div>
@@ -88,7 +88,7 @@ export default function Contact() {
                                 WhatsApp
                             </a>
                             <a href={INSTAGRAM_URL} onClick={handleExternalClick(INSTAGRAM_URL)} target="_blank" rel="noreferrer" className="flex-1 btn-clip border border-neon-red text-neon-red hover:bg-neon-red hover:text-white font-display uppercase tracking-widest text-xs px-4 py-3 text-center inline-flex items-center justify-center gap-2 transition-colors" data-testid="contact-instagram-btn">
-                                <Instagram size={14}/> Follow
+                                <Instagram size={14} /> Follow
                             </a>
                         </div>
                     </div>
