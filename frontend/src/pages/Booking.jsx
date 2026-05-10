@@ -49,7 +49,7 @@ export default function Booking() {
                     if (isPM && slotHour !== 12) slotHour += 12;
                     if (isAM && slotHour === 12) slotHour = 0;
 
-                    const isPast = isToday && slotHour <= currentHour;
+                    const isPast = isToday && slotHour < currentHour;
 
                     return {
                         ...s,

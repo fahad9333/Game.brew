@@ -17,27 +17,39 @@ export const SERVICE_IMAGES = {
 
 export const TESTIMONIALS = [
     {
-        name: "Arjun S.",
-        role: "CS:GO Player",
-        text: "Best gaming café in Belagavi, hands down. The PCs are insane and the vibe is pure cyberpunk.",
+        name: "Silent Wolf",
+        role: "Google Review",
+        text: "Amazing experience I’ve been to the gaming zone a few times since it started and let me tell u the vibes are perfecttt as soon as u enter u get a gaming vibe pool tables private ps5 gaming zones car simulator and especially the pc zone let me tell u the pc area is soo well set up the lights the vibes that u don’t know how the time passes would definitely recommend to anyone who wants to get the best first experience in a gaming zone",
         rating: 5,
     },
     {
-        name: "Priya K.",
-        role: "Birthday party host",
-        text: "Booked the whole café for my brother's 18th. Staff was amazing and the setup felt like a real esports event.",
+        name: "Shradha Panalkar",
+        role: "Google Review",
+        text: "Great place to visit with friends, perfect for anyone who loves cafe vibes and gaming all in one spot, the setup is crazy and the cozy ambiance makes it even better.",
         rating: 5,
     },
     {
-        name: "Rohan M.",
-        role: "Sim Racing enthusiast",
-        text: "The force-feedback racing rigs are the real deal. Drove here from 40km away and it was worth it.",
+        name: "Ishan Poal",
+        role: "Google Review",
+        text: "Excellent arrangements, best ps5 games , good experience",
         rating: 5,
     },
     {
-        name: "Ayesha T.",
-        role: "PS5 Regular",
-        text: "Private PS5 rooms + cold coffee = perfect Saturday night. Mortal Kombat hits different here.",
+        name: "Vansh Kapurani",
+        role: "Google Review",
+        text: "Best place to visit with friends. Good atmosphere and vibe. No competition 🫡",
+        rating: 5,
+    },
+    {
+        name: "Suraaj Vhatkar",
+        role: "Google Review",
+        text: "Great place to visit with your friends. Highly Recommended.",
+        rating: 5,
+    },
+    {
+        name: "Swayam Patil",
+        role: "Google Review",
+        text: "Best gaming cafe in belgaum",
         rating: 5,
     },
 ];

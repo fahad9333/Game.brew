@@ -5,7 +5,7 @@ const TABS = [
     { id: "pc", label: "PC Games" },
     { id: "ps5", label: "PS5" },
     { id: "racing", label: "Sim Racing" },
-    { id: "cafe", label: "Food & Café" },
+    // { id: "cafe", label: "Food & Café" },
     { id: "pool", label: "Pool" },
 ];
 
@@ -15,7 +15,7 @@ const getImagePathBase = (category, name) => {
     if (category === "pc") folder = "PC games";
     if (category === "ps5") folder = "PS5";
     if (category === "racing") folder = "SIM Racing";
-    
+
     // Safely encode the URI to handle spaces and special characters, without the extension
     return encodeURI(`/assets/images/games/${folder}/${name}`);
 };
@@ -44,11 +44,10 @@ export default function GamesMenu() {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`whitespace-nowrap font-display text-sm uppercase tracking-wider px-6 py-3 transition-colors rounded-t-lg ${
-                                    activeTab === tab.id
-                                        ? "bg-neon-red/10 text-neon-red border-b-2 border-neon-red"
-                                        : "text-white/60 hover:text-white hover:bg-white/5"
-                                }`}
+                                className={`whitespace-nowrap font-display text-sm uppercase tracking-wider px-6 py-3 transition-colors rounded-t-lg ${activeTab === tab.id
+                                    ? "bg-neon-red/10 text-neon-red border-b-2 border-neon-red"
+                                    : "text-white/60 hover:text-white hover:bg-white/5"
+                                    }`}
                             >
                                 {tab.label}
                             </button>
@@ -60,10 +59,10 @@ export default function GamesMenu() {
                         {GAMES_MENU[activeTab].map((item, i) => (
                             <div key={i} className="glass glass-hover rounded-xl overflow-hidden group rise-in" style={{ animationDelay: `${i * 50}ms` }}>
                                 <div className="aspect-[4/3] overflow-hidden relative">
-                                    <img 
-                                        src={`${getImagePathBase(activeTab, item.name)}.jpg`} 
+                                    <img
+                                        src={`${getImagePathBase(activeTab, item.name)}.jpg`}
                                         data-ext=".jpg"
-                                        alt={item.name} 
+                                        alt={item.name}
                                         onError={(e) => {
                                             const exts = ['.jpg', '.jpeg', '.png'];
                                             const currentExt = e.target.getAttribute('data-ext') || '.jpg';
@@ -77,7 +76,7 @@ export default function GamesMenu() {
                                                 e.target.src = IMAGES.logo || "/assets/images/logo.jpeg";
                                             }
                                         }}
-                                        className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700" 
+                                        className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                                     <div className="absolute bottom-4 left-4 right-4">

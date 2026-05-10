@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import ServiceCard from "@/components/ServiceCard";
 
+// Since the image is in the public folder, we can reference its absolute path directly
+const redbullImage = "/assets/images/REDBULL.png";
+
 export default function Services() {
     const [services, setServices] = useState([]);
     useEffect(() => { api.get("/services").then((r) => setServices(r.data.services || [])); }, []);
@@ -36,11 +39,8 @@ export default function Services() {
                             </p>
                         </div>
                         <div className="relative z-10 flex gap-4 md:gap-8 items-center justify-center">
-                            <div className="w-24 h-40 md:w-32 md:h-48 rounded-lg overflow-hidden glass-hover shadow-lg">
-                                <img src="https://images.unsplash.com/photo-1622543925917-763c34d1a86e?auto=format&fit=crop&q=80&w=300" alt="Monster Energy" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="w-24 h-40 md:w-32 md:h-48 rounded-lg overflow-hidden glass-hover shadow-lg mt-8 md:mt-12">
-                                <img src="https://images.unsplash.com/photo-1541334691461-125c15e45a0b?auto=format&fit=crop&q=80&w=300" alt="Red Bull" className="w-full h-full object-cover" />
+                            <div className="w-48 h-72 md:w-80 md:h-[450px] rounded-lg overflow-hidden glass-hover shadow-lg">
+                                <img src={redbullImage} alt="Red Bull" className="w-full h-full object-cover object-center" />
                             </div>
                         </div>
                     </div>
