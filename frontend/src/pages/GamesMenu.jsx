@@ -15,6 +15,7 @@ const getImagePathBase = (category, name) => {
     if (category === "pc") folder = "PC games";
     if (category === "ps5") folder = "PS5";
     if (category === "racing") folder = "SIM Racing";
+    if (category === "pool") folder = "Pool";
 
     // Safely encode the URI to handle spaces and special characters, without the extension
     return encodeURI(`/assets/images/games/${folder}/${name}`);
