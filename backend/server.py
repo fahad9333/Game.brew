@@ -113,7 +113,7 @@ manager = ConnectionManager()
 class BookingCreate(BaseModel):
     name: str
     phone: str
-    email: EmailStr
+    email: Optional[str] = ""
     service_id: str
     booking_date: str  # YYYY-MM-DD
     time_slot: str     # HH:00

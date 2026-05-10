@@ -18,19 +18,25 @@ export default function CartCheckout() {
         setLoading(true);
 
         try {
-            // Process all bookings in the cart
-            const promises = cart.map(item => 
-                api.post("/bookings", {
-                    name: customer.name,
-                    phone: customer.phone,
-                    email: customer.email,
-                    service_id: item.service_id,
-                    booking_date: item.booking_date,
-                    time_slot: item.time_slot,
-                    duration_hours: item.duration_hours,
-                    notes: item.notes || ""
-                })
-            );
+            // Process all bookings in the cart, respecting quantity
+            const promises = [];
+            cart.forEach(item => {
+                const qty = item.quantity || 1;
+                for (let i = 0; i < qty; i++) {
+                    promises.push(
+                        api.post("/bookings", {
+                            name: customer.name,
+                            phone: customer.phone,
+                            email: customer.email,
+                            service_id: item.service_id,
+                            booking_date: item.booking_date,
+                            time_slot: item.time_slot,
+                            duration_hours: item.duration_hours,
+                            notes: item.notes || ""
+                        })
+                    );
+                }
+            });
             
             await Promise.all(promises);
             clearCart();
@@ -38,7 +44,14 @@ export default function CartCheckout() {
             navigate("/");
         } catch (error) {
             console.error(error);
-            alert("Checkout failed. Some slots might no longer be available.");
+            const detail = error.response?.data?.detail;
+            let msg = "Checkout failed. Some slots might no longer be available.";
+            if (typeof detail === 'string') {
+                msg = detail;
+            } else if (Array.isArray(detail)) {
+                msg = detail.map(d => d.msg).join(', ');
+            }
+            alert(msg);
         } finally {
             setLoading(false);
         }
@@ -67,9 +80,10 @@ export default function CartCheckout() {
                         {cart.map((item) => (
                             <div key={item.cartId} className="glass p-4 rounded-lg flex justify-between items-center border border-white/10">
                                 <div>
-                                    <div className="font-display font-bold text-lg">{item.service_name}</div>
+                                    <div className="font-display font-bold text-lg">{item.service_name} {item.quantity > 1 ? `(x${item.quantity})` : ""}</div>
                                     <div className="text-white/60 text-sm">{item.booking_date} at {item.time_slot}</div>
                                     <div className="text-white/60 text-sm">Duration: {item.duration_hours} hour(s)</div>
+                                    {item.quantity > 1 && <div className="text-white/60 text-sm">Quantity: {item.quantity}</div>}
                                     <div className="text-neon-red font-bold mt-1">₹{item.total_amount}</div>
                                 </div>
                                 <button onClick={() => removeFromCart(item.cartId)} className="text-white/40 hover:text-red-500 transition-colors p-2">
@@ -96,8 +110,8 @@ export default function CartCheckout() {
                                 <input required type="tel" value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-none px-4 py-3 text-white focus:outline-none focus:border-neon-red transition-colors" />
                             </div>
                             <div>
-                                <label className="block text-white/70 text-xs font-display uppercase tracking-wider mb-2">Email</label>
-                                <input required type="email" value={customer.email} onChange={e => setCustomer({...customer, email: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-none px-4 py-3 text-white focus:outline-none focus:border-neon-red transition-colors" />
+                                <label className="block text-white/70 text-xs font-display uppercase tracking-wider mb-2">Email (Optional)</label>
+                                <input type="email" value={customer.email} onChange={e => setCustomer({...customer, email: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-none px-4 py-3 text-white focus:outline-none focus:border-neon-red transition-colors" />
                             </div>
                             <button type="submit" disabled={loading} className="w-full btn-clip bg-neon-red hover:bg-neon-redSoft text-white font-display uppercase tracking-wider py-4 mt-4 transition-colors disabled:opacity-50">
                                 {loading ? "Processing..." : "Confirm All Bookings"}
