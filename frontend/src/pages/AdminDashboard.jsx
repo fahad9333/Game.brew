@@ -133,7 +133,7 @@ export default function AdminDashboard() {
             cleanPhone = '91' + cleanPhone.slice(-10);
         }
         const serviceName = booking.quantity > 1 ? ` for ${booking.quantity} ${booking.service_name}` : booking.service_name;
-        const msg = `🎮 *Booking Update*\nHi ${booking.name}, unfortunately we are unable to confirm your booking ${serviceName} on ${booking.booking_date} at ${booking.time_slot}. Please reach out to us for alternative times. We apologize for the inconvenience!`;
+        const msg = `*Booking Update*\nHi ${booking.name}, unfortunately we are unable to confirm your booking ${serviceName} on ${booking.booking_date} at ${booking.time_slot}. Please reach out to us for alternative times. We apologize for the inconvenience!`;
         const encodedMsg = encodeURIComponent(msg);
         return `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
     };

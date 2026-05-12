@@ -13,7 +13,7 @@ export default function Booking() {
     const [services, setServices] = useState([]);
     const [slots, setSlots] = useState([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
-    
+
     const { cart, addToCart, getCartTotal } = useCart();
 
     const [form, setForm] = useState({
@@ -37,13 +37,13 @@ export default function Booking() {
                 // Filter slots that have already passed if it's today
                 const isToday = form.booking_date === todayStr();
                 const now = new Date();
-                
+
                 const filteredSlots = (r.data.slots || []).map(s => {
                     let slotHourStr = s.time.split(":")[0];
                     let slotMinStr = s.time.includes(":") ? s.time.split(":")[1].substring(0, 2) : "00";
                     let isAM = s.time.toLowerCase().includes("am");
                     let isPM = s.time.toLowerCase().includes("pm");
-                    
+
                     let slotHour = parseInt(slotHourStr, 10);
                     let slotMin = parseInt(slotMinStr, 10);
                     if (isPM && slotHour !== 12) slotHour += 12;
@@ -53,10 +53,10 @@ export default function Booking() {
                     if (isToday) {
                         const slotDate = new Date();
                         slotDate.setHours(slotHour, slotMin, 0, 0);
-                        
+
                         // Disable exactly 90 minutes before scheduled time
                         const cutoffDate = new Date(slotDate.getTime() - 90 * 60000);
-                        
+
                         if (now >= cutoffDate) {
                             isPast = true;
                         }
@@ -68,21 +68,26 @@ export default function Booking() {
                         available: isPast ? 0 : s.available
                     };
                 });
-                
+
                 setSlots(filteredSlots);
             })
             .finally(() => setLoadingSlots(false));
     }, [form.service_id, form.booking_date]);
 
     const adjustedSlots = useMemo(() => {
-        return slots.map(s => {
+        return slots.map((s, index) => {
             const inCart = cart
-                .filter(item => item.service_id === form.service_id && item.booking_date === form.booking_date && item.time_slot === s.time)
+                .filter(item => {
+                    if (item.service_id !== form.service_id || item.booking_date !== form.booking_date) return false;
+                    const itemStartIndex = slots.findIndex(slot => slot.time === item.time_slot);
+                    if (itemStartIndex === -1) return false;
+                    return index >= itemStartIndex && index < itemStartIndex + item.duration_hours;
+                })
                 .reduce((sum, item) => sum + (item.quantity || 1), 0);
-                
+
             const actualAvailable = Math.max(0, s.available - inCart);
             const is_full = s.is_full || actualAvailable === 0;
-            
+
             return {
                 ...s,
                 available: actualAvailable,
@@ -91,8 +96,22 @@ export default function Booking() {
         });
     }, [slots, cart, form.service_id, form.booking_date]);
 
+    const maxQuantity = useMemo(() => {
+        if (!form.time_slot || adjustedSlots.length === 0) return 0;
+        const startIndex = adjustedSlots.findIndex(s => s.time === form.time_slot);
+        if (startIndex === -1) return 0;
+
+        let minAvailable = Infinity;
+        for (let i = 0; i < form.duration_hours; i++) {
+            if (startIndex + i >= adjustedSlots.length) return 0; // Beyond operating hours
+            const slot = adjustedSlots[startIndex + i];
+            if (slot.is_full) return 0;
+            if (slot.available < minAvailable) minAvailable = slot.available;
+        }
+        return minAvailable === Infinity ? 0 : minAvailable;
+    }, [adjustedSlots, form.time_slot, form.duration_hours]);
+
     const selectedSlotData = useMemo(() => adjustedSlots.find(s => s.time === form.time_slot), [adjustedSlots, form.time_slot]);
-    const maxQuantity = selectedSlotData && !selectedSlotData.is_full ? selectedSlotData.available : 0;
 
     useEffect(() => {
         if (maxQuantity > 0 && form.quantity > maxQuantity) {
@@ -142,7 +161,7 @@ export default function Booking() {
 
     return (
         <div className="min-h-screen py-12" data-testid="booking-page">
-            <Toaster richColors position="top-right" duration={2500}/>
+            <Toaster richColors position="top-right" duration={2500} />
             <div className="max-w-7xl mx-auto px-6">
                 <div className="font-display text-xs tracking-[0.5em] text-neon-red uppercase mb-3">// Reserve your slot</div>
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
@@ -160,11 +179,10 @@ export default function Booking() {
                                         key={s.id}
                                         onClick={() => update("service_id", s.id)}
                                         data-testid={`select-service-${s.id}`}
-                                        className={`p-3 font-display uppercase text-xs tracking-wider transition-all ${
-                                            form.service_id === s.id
-                                                ? "bg-neon-red text-white"
-                                                : "border border-white/20 text-white/70 hover:border-neon-red hover:text-neon-red"
-                                        }`}
+                                        className={`p-3 font-display uppercase text-xs tracking-wider transition-all ${form.service_id === s.id
+                                            ? "bg-neon-red text-white"
+                                            : "border border-white/20 text-white/70 hover:border-neon-red hover:text-neon-red"
+                                            }`}
                                     >
                                         {s.name}
                                     </button>
@@ -202,7 +220,7 @@ export default function Booking() {
                         <div>
                             <label className="font-display uppercase tracking-widest text-xs text-white/60 mb-2 block">Time Slot</label>
                             {loadingSlots ? (
-                                <div className="flex items-center gap-2 text-white/60 text-sm"><Loader2 className="animate-spin" size={16}/> Loading availability...</div>
+                                <div className="flex items-center gap-2 text-white/60 text-sm"><Loader2 className="animate-spin" size={16} /> Loading availability...</div>
                             ) : (
                                 <div className="grid grid-cols-3 md:grid-cols-6 gap-2" data-testid="time-slots-grid">
                                     {adjustedSlots.map((s) => {
@@ -215,13 +233,12 @@ export default function Booking() {
                                                 disabled={s.is_full}
                                                 onClick={() => update("time_slot", s.time)}
                                                 data-testid={`slot-${s.time}`}
-                                                className={`relative py-3 font-display text-sm tracking-wider transition-all ${
-                                                    s.is_full
-                                                        ? "bg-white/5 text-white/20 cursor-not-allowed line-through"
-                                                        : isSelected
-                                                            ? "bg-neon-red text-white"
-                                                            : "border border-white/20 text-white/80 hover:border-neon-red"
-                                                }`}
+                                                className={`relative py-3 font-display text-sm tracking-wider transition-all ${s.is_full
+                                                    ? "bg-white/5 text-white/20 cursor-not-allowed line-through"
+                                                    : isSelected
+                                                        ? "bg-neon-red text-white"
+                                                        : "border border-white/20 text-white/80 hover:border-neon-red"
+                                                    }`}
                                             >
                                                 {s.time}
                                                 {!s.is_full && (
@@ -238,7 +255,7 @@ export default function Booking() {
 
                         <textarea placeholder="Notes (optional)" rows={3} value={form.notes} onChange={(e) => update("notes", e.target.value)}
                             data-testid="booking-notes-input"
-                            className="w-full bg-black/50 border border-white/20 px-4 py-3 text-white focus:border-neon-red outline-none placeholder:text-white/40"/>
+                            className="w-full bg-black/50 border border-white/20 px-4 py-3 text-white focus:border-neon-red outline-none placeholder:text-white/40" />
 
                         <div className="flex items-center justify-between mt-2 mb-4 bg-black/30 p-4 border border-white/10">
                             <div className="flex flex-col">
@@ -250,19 +267,19 @@ export default function Booking() {
                                 )}
                             </div>
                             <div className="flex items-center border border-white/20 bg-black/50">
-                                <button 
-                                    type="button" 
-                                    onClick={() => update("quantity", Math.max(1, form.quantity - 1))} 
-                                    className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" 
+                                <button
+                                    type="button"
+                                    onClick={() => update("quantity", Math.max(1, form.quantity - 1))}
+                                    className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                     disabled={form.quantity <= 1 || maxQuantity === 0}
                                 >
                                     -
                                 </button>
                                 <span className="w-12 text-center font-display text-sm">{form.quantity}</span>
-                                <button 
-                                    type="button" 
-                                    onClick={() => update("quantity", Math.min(maxQuantity, form.quantity + 1))} 
-                                    className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" 
+                                <button
+                                    type="button"
+                                    onClick={() => update("quantity", Math.min(maxQuantity, form.quantity + 1))}
+                                    className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                     disabled={form.quantity >= maxQuantity || maxQuantity === 0}
                                 >
                                     +
