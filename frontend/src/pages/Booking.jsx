@@ -261,7 +261,7 @@ export default function Booking() {
                             <div className="flex flex-col">
                                 <label className="font-display uppercase tracking-widest text-xs text-white/60 mb-1">Quantity</label>
                                 {selectedSlotData && !selectedSlotData.is_full ? (
-                                    <span className="text-neon-red text-xs font-bold">{maxQuantity} Spots Left</span>
+                                    <span className="text-neon-red text-xs font-bold">{maxQuantity} Slots Left</span>
                                 ) : (
                                     <span className="text-white/40 text-xs">Unavailable</span>
                                 )}
