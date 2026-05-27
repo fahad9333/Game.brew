@@ -291,21 +291,24 @@ export default function Booking() {
                             <button
                                 type="button"
                                 onClick={handleBookNow}
-                                className="btn-clip flex-1 bg-neon-red hover:bg-neon-redSoft text-white font-display uppercase tracking-widest text-sm px-4 py-4 inline-flex items-center justify-center gap-2"
+                                disabled={maxQuantity === 0}
+                                className="btn-clip flex-1 bg-neon-red hover:bg-neon-redSoft text-white font-display uppercase tracking-widest text-sm px-4 py-4 inline-flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-neon-red"
                             >
                                 Book Now
                             </button>
                             <button
                                 type="button"
                                 onClick={handleAddToCart}
-                                className="btn-clip flex-1 border border-neon-red text-neon-red hover:bg-neon-red/10 font-display uppercase tracking-widest text-sm px-4 py-4 inline-flex items-center justify-center gap-2 transition-colors"
+                                disabled={maxQuantity === 0}
+                                className="btn-clip flex-1 border border-neon-red text-neon-red hover:bg-neon-red/10 font-display uppercase tracking-widest text-sm px-4 py-4 inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                             >
                                 Add to Cart
                             </button>
                             <button
                                 type="button"
                                 onClick={handleWhatsApp}
-                                className="btn-clip flex-1 bg-[#25D366] hover:bg-[#128C7E] text-white font-display uppercase tracking-widest text-sm px-4 py-4 inline-flex items-center justify-center gap-2 transition-colors"
+                                disabled={maxQuantity === 0}
+                                className="btn-clip flex-1 bg-[#25D366] hover:bg-[#128C7E] text-white font-display uppercase tracking-widest text-sm px-4 py-4 inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#25D366]"
                             >
                                 WhatsApp
                             </button>
