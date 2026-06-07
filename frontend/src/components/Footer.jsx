@@ -91,7 +91,7 @@ export default function Footer() {
                         display: "block",
                     }}>
                         Developed by Mufaiz &amp; Fahad<br />
-                        <span style={{ color: "rgba(255,40,40,0.8)", fontSize: "0.50rem", display: "block" }}>Tap to contact</span>
+                        <span style={{ color: "rgba(255,40,40,0.8)", fontSize: "0.65rem", display: "block" }}>Tap to contact</span>
                     </span>
                 </div>
             </div>
