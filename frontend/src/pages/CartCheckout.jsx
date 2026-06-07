@@ -40,7 +40,7 @@ export default function CartCheckout() {
             
             await Promise.all(promises);
             clearCart();
-            alert("All bookings confirmed!");
+            alert("Wait for WhatsApp Confirmation!");
             navigate("/");
         } catch (error) {
             console.error(error);
