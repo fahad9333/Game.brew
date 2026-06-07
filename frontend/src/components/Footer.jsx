@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Instagram, Phone, Mail, MapPin } from "lucide-react";
 import { PHONE_DISPLAY, EMAIL, INSTAGRAM_URL, waLink, handleExternalClick } from "@/lib/api";
 import { IMAGES as IMG } from "@/lib/data";
@@ -9,52 +9,77 @@ export default function Footer() {
     const [toastVisible, setToastVisible] = useState(false);
     const [toastShown, setToastShown] = useState(false);
 
+    const location = useLocation();
+
+    // Restore toast visibility from this session (if previously triggered)
     useEffect(() => {
-        const el = footerRef.current;
-        if (!el) return;
+        const stored = sessionStorage.getItem("devToastShown");
+        if (stored === "1") {
+            setToastShown(true);
+            setToastVisible(true);
+        }
+    }, []);
 
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting && !toastShown) {
-                    setToastShown(true);
-                    setToastVisible(true);
-                    setTimeout(() => setToastVisible(false), 4000);
-                }
-            },
-            { threshold: 0.3 }
-        );
+    // Show toast when user scrolls to bottom of page
+    useEffect(() => {
+        const onScroll = () => {
+            const atBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 2);
+            if (atBottom && !toastShown) {
+                setToastShown(true);
+                setToastVisible(true);
+                try { sessionStorage.setItem("devToastShown", "1"); } catch {}
+            }
+        };
 
-        observer.observe(el);
-        return () => observer.disconnect();
+        window.addEventListener("scroll", onScroll, { passive: true });
+        // check immediately in case page already at bottom
+        onScroll();
+        return () => window.removeEventListener("scroll", onScroll);
     }, [toastShown]);
+
+    // Hide toast and clear session flag on route change
+    useEffect(() => {
+        // when the pathname changes, hide the toast so it can be triggered again
+        setToastVisible(false);
+        setToastShown(false);
+        try { sessionStorage.removeItem("devToastShown"); } catch {}
+    }, [location.pathname]);
 
     return (
         <>
             {/* Dev toast — fixed, fires once when footer scrolls into view */}
             <div
                 aria-live="polite"
+                role="button"
+                tabIndex={0}
+                onClick={() => window.open(`https://wa.me/916361713435?text=${encodeURIComponent("Hi, I'm interested in building a website.")}`, "_blank")}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') window.open(`https://wa.me/916361713435?text=${encodeURIComponent("Hi, I'm interested in building a website.")}`, "_blank"); }}
                 style={{
                     position: "fixed",
                     bottom: "1.25rem",
                     right: "1.25rem",
                     zIndex: 9999,
-                    pointerEvents: "none",
+                    pointerEvents: toastVisible ? "auto" : "none",
+                    cursor: toastVisible ? "pointer" : "default",
                     transition: "opacity 0.5s ease, transform 0.5s ease",
                     opacity: toastVisible ? 1 : 0,
-                    transform: toastVisible ? "translateY(0)" : "translateY(20px)",
+                    transform: toastVisible ? "translateY(0) scale(0.8)" : "translateY(20px) scale(0.8)",
+                    transformOrigin: "bottom right",
                 }}
             >
                 <div style={{
                     background: "rgba(10,10,10,0.92)",
                     border: "1px solid rgba(255,40,40,0.35)",
-                    borderRadius: "6px",
+                    borderRadius: "12px",
                     padding: "0.55rem 1rem",
                     boxShadow: "0 0 18px rgba(255,40,40,0.18)",
                     backdropFilter: "blur(10px)",
                     display: "flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     gap: "0.5rem",
-                    whiteSpace: "nowrap",
+                    whiteSpace: "normal",
+                    textAlign: "center",
                 }}>
                     <span style={{ color: "rgba(255,40,40,0.8)", fontSize: "0.65rem" }}>⚡</span>
                     <span style={{
@@ -63,8 +88,10 @@ export default function Footer() {
                         letterSpacing: "0.1em",
                         textTransform: "uppercase",
                         color: "rgba(255,255,255,0.6)",
+                        display: "block",
                     }}>
-                        Developed by Mufaiz &amp; Fahad
+                        Developed by Mufaiz &amp; Fahad<br />
+                        <span style={{ color: "rgba(255,40,40,0.8)", fontSize: "0.50rem", display: "block" }}>Tap to contact</span>
                     </span>
                 </div>
             </div>

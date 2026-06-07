@@ -2,7 +2,6 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
-import WhatsAppFloat from "./WhatsAppFloat";
 import BookNowFloat from "./BookNowFloat";
 
 export default function Layout() {
@@ -16,7 +15,6 @@ export default function Layout() {
                 <Outlet />
             </main>
             {!hideChrome && <Footer />}
-            {!hideChrome && <WhatsAppFloat />}
             {!hideChrome && <BookNowFloat />}
         </div>
     );
