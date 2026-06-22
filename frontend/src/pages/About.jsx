@@ -13,7 +13,7 @@ export default function About() {
                         Brewed for <span className="neon-red">Gamers.</span>
                     </h1>
                     <p className="text-white/70 text-lg max-w-3xl leading-relaxed">
-                        GAMEBREW started as a dream shared between four friends in Belagavi — a place to game, hang out, and feel
+                        GAMEBREW started as a dream shared between two friends in Belagavi — a place to game, hang out, and feel
                         the adrenaline of an esports arena without the city-level pricing. Today, it's the most iconic gaming café
                         in Karnataka.
                     </p>
